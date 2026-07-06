@@ -963,6 +963,56 @@ select.form-input {
     background-position: right 16px center;
 }
 
+/* Premium Capsule Search Box */
+.search-box-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 240px;
+    background-color: rgba(3, 15, 38, 0.6);
+    border: 1px solid rgba(0, 82, 204, 0.35);
+    border-radius: 30px;
+    padding: 0 14px;
+    transition: var(--transition);
+}
+
+.search-box-wrapper:hover {
+    border-color: rgba(0, 163, 255, 0.5);
+}
+
+.search-box-wrapper:focus-within {
+    border-color: var(--color-border-active); /* #00e5ff */
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+    background-color: rgba(3, 15, 38, 0.8);
+}
+
+.search-icon-svg {
+    color: var(--text-secondary);
+    margin-right: 10px;
+    flex-shrink: 0;
+    transition: var(--transition);
+}
+
+.search-box-wrapper:focus-within .search-icon-svg {
+    color: var(--color-border-active);
+}
+
+.search-input {
+    width: 100%;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    padding: 10px 0;
+    font-family: var(--font-primary);
+    font-size: 0.85rem;
+}
+
+.search-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
 /* Tables styling in Cards */
 .table-responsive {
     overflow-x: auto;
