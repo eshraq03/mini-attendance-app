@@ -1,82 +1,147 @@
-// --- APP STATE MANAGEMENT ---
+// --- APP STATE ---
 let students = [];
 let attendanceLogs = [];
+let isLoggedIn = false;
 
 // Local Storage Keys
-const STORAGE_KEY_STUDENTS = 'attendance_app_students';
-const STORAGE_KEY_LOGS = 'attendance_app_logs';
+const KEY_STUDENTS = 'spoken_english_students';
+const KEY_LOGS = 'spoken_english_logs';
+const KEY_AUTH = 'spoken_english_auth';
 
-// Mock Data to initialize if empty
+// Mock Data
 const MOCK_STUDENTS = [
-    { id: '1', name: 'أحمد عبد الله الفارس', roll: 'ST202601', class: 'المستوى الأول' },
-    { id: '2', name: 'سارة عمر الخطيب', roll: 'ST202602', class: 'المستوى الأول' },
-    { id: '3', name: 'محمد علي منصور', roll: 'ST202603', class: 'المستوى الثاني' },
-    { id: '4', name: 'فاطمة حسن اليوسف', roll: 'ST202604', class: 'المستوى الثالث' },
-    { id: '5', name: 'خالد وليد النجار', roll: 'ST202605', class: 'المستوى الرابع' }
+    { id: '1', name: 'John Doe', roll: 'SE202601', class: 'Level 1' },
+    { id: '2', name: 'Sarah Smith', roll: 'SE202602', class: 'Level 1' },
+    { id: '3', name: 'Michael Johnson', roll: 'SE202603', class: 'Level 2' },
+    { id: '4', name: 'Emily Davis', roll: 'SE202604', class: 'Level 3' },
+    { id: '5', name: 'David Wilson', roll: 'SE202605', class: 'Level 4' }
 ];
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     try {
         loadData();
+        setupAuthentication();
         setupDateTime();
-        setupTabNavigation();
-        setupStudentActions();
-        setupAttendanceActions();
-        setupHistoryActions();
+        setupNavigation();
+        setupStudentManagement();
+        setupAttendanceSheet();
         
-        // Initial render
-        renderDashboard();
-        renderStudentsList();
-        initAttendanceSheet();
-        renderHistoryList();
-        
-        showToast('مرحباً بك في نظام الحضور الذكي! تم تحميل البيانات.', 'info');
+        // Initial Renders
+        if (isLoggedIn) {
+            renderDashboard();
+            renderStudentsList();
+        }
     } catch (error) {
-        console.error('Error during application initialization:', error);
-        showToast('حدث خطأ أثناء تحميل التطبيق. يرجى مراجعة سجل المطور.', 'danger');
+        console.error('Initialization error:', error);
+        showToast('Error initializing application. Please check console.', 'danger');
     }
 });
 
-// --- DATA UTILITIES ---
+// --- LOAD/SAVE LOCALSTORAGE ---
 function loadData() {
-    // Load Students
-    const storedStudents = localStorage.getItem(STORAGE_KEY_STUDENTS);
+    // Load students
+    const storedStudents = localStorage.getItem(KEY_STUDENTS);
     if (storedStudents) {
         students = JSON.parse(storedStudents);
     } else {
         students = [...MOCK_STUDENTS];
-        saveStudentsToStorage();
+        saveStudents();
     }
 
-    // Load Attendance Logs
-    const storedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+    // Load attendance logs
+    const storedLogs = localStorage.getItem(KEY_LOGS);
     if (storedLogs) {
         attendanceLogs = JSON.parse(storedLogs);
     } else {
         attendanceLogs = [];
     }
+
+    // Load auth status
+    const storedAuth = localStorage.getItem(KEY_AUTH);
+    isLoggedIn = storedAuth === 'true';
 }
 
-function saveStudentsToStorage() {
-    localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(students));
+function saveStudents() {
+    localStorage.setItem(KEY_STUDENTS, JSON.stringify(students));
 }
 
-function saveLogsToStorage() {
-    localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(attendanceLogs));
+function saveLogs() {
+    localStorage.setItem(KEY_LOGS, JSON.stringify(attendanceLogs));
 }
 
-// Set today's date in header & date picker input
+// --- AUTHENTICATION ---
+function setupAuthentication() {
+    const loginForm = document.getElementById('login-form');
+    const loginScreen = document.getElementById('login-screen');
+    const mainApp = document.getElementById('main-app');
+    const logoutBtn = document.getElementById('btn-logout');
+    const forgotPwdBtn = document.getElementById('btn-forgot-password');
+
+    // Show/Hide app wrapper depending on auth state
+    if (isLoggedIn) {
+        loginScreen.classList.add('hidden');
+        mainApp.classList.remove('hidden');
+    } else {
+        loginScreen.classList.remove('hidden');
+        mainApp.classList.add('hidden');
+    }
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+
+            if (email && password) {
+                // Mock success for any credentials entered
+                isLoggedIn = true;
+                localStorage.setItem(KEY_AUTH, 'true');
+                
+                // Switch Screens
+                loginScreen.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+                
+                showToast(`Welcome back, Ali!`, 'success');
+                
+                // Render initial views
+                renderDashboard();
+                renderStudentsList();
+            }
+        });
+    }
+
+    if (forgotPwdBtn) {
+        forgotPwdBtn.addEventListener('click', () => {
+            showToast('Reset email instructions sent to your inbox!', 'info');
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            isLoggedIn = false;
+            localStorage.setItem(KEY_AUTH, 'false');
+            
+            // Switch Screens
+            loginScreen.classList.remove('hidden');
+            mainApp.classList.add('hidden');
+            
+            showToast('Successfully signed out.', 'info');
+        });
+    }
+}
+
+// --- GENERAL APP UTILS ---
 function setupDateTime() {
     const today = new Date();
     
     // Arabic formatted date in header
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const formattedDate = today.toLocaleDateString('ar-EG', dateOptions);
+    const formattedDate = today.toLocaleDateString('en-US', dateOptions);
     const dateDisplay = document.getElementById('current-date-display');
     if (dateDisplay) dateDisplay.textContent = formattedDate;
 
-    // Date input default (YYYY-MM-DD in local time)
+    // Date input default (YYYY-MM-DD)
     const dateInput = document.getElementById('attendance-date');
     if (dateInput) {
         const year = today.getFullYear();
@@ -86,7 +151,6 @@ function setupDateTime() {
     }
 }
 
-// --- TOAST NOTIFICATIONS ---
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -94,7 +158,6 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
-    // Set icons based on toast type
     let iconSvg = '';
     if (type === 'success') {
         iconSvg = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" class="green-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
@@ -113,7 +176,6 @@ function showToast(message, type = 'info') {
 
     container.appendChild(toast);
 
-    // Slide out and remove toast after 3 seconds
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(20px)';
@@ -123,190 +185,113 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// --- NAV NAVIGATION ---
-function setupTabNavigation() {
+// --- NAVIGATION ---
+function setupNavigation() {
     const navLinks = document.querySelectorAll('.nav-link');
     const tabContents = document.querySelectorAll('.tab-content');
-    
+
     navLinks.forEach(link => {
         link.addEventListener('click', () => {
             const targetTab = link.getAttribute('data-tab');
-            
-            navLinks.forEach(l => l.classList.remove('active'));
-            tabContents.forEach(tc => tc.classList.remove('active'));
-            
-            link.classList.add('active');
-            const targetEl = document.getElementById(`tab-${targetTab}`);
-            if (targetEl) targetEl.classList.add('active');
-            
-            // Refresh content if switching tabs
-            if (targetTab === 'dashboard') {
-                renderDashboard();
-            } else if (targetTab === 'log-attendance') {
-                initAttendanceSheet();
-            } else if (targetTab === 'history') {
-                renderHistoryList();
-            }
+            switchTab(targetTab);
         });
     });
+}
 
-    // Quick action button on dashboard
-    const quickLogBtn = document.getElementById('btn-quick-log');
-    if (quickLogBtn) {
-        quickLogBtn.addEventListener('click', () => {
-            const attNavLink = document.getElementById('nav-log-attendance');
-            if (attNavLink) attNavLink.click();
-        });
+function switchTab(tabId) {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    // Remove active state
+    navLinks.forEach(l => l.classList.remove('active'));
+    tabContents.forEach(c => c.classList.remove('active'));
+
+    // Set active link in sidebar if applicable
+    const activeLink = document.querySelector(`.nav-link[data-tab="${tabId}"]`);
+    if (activeLink) activeLink.classList.add('active');
+
+    // Set active tab content
+    const targetContent = document.getElementById(`tab-${tabId}`);
+    if (targetContent) targetContent.classList.add('active');
+
+    // Trigger renders depending on screen
+    if (tabId === 'dashboard') {
+        renderDashboard();
+    } else if (tabId === 'add-student') {
+        renderStudentsList();
     }
 }
 
-// --- DASHBOARD SCREEN LOGIC ---
+// Global Nav Handlers
+window.backToDashboard = function() {
+    switchTab('dashboard');
+};
+
+// --- DASHBOARD RENDER ---
 function renderDashboard() {
     try {
-        // Compute stats for today/latest logs
-        const totalStudents = students.length;
-        document.getElementById('stat-total-count').textContent = totalStudents;
+        // Count students per level
+        const countL1 = students.filter(s => s.class === 'Level 1').length;
+        const countL2 = students.filter(s => s.class === 'Level 2').length;
+        const countL3 = students.filter(s => s.class === 'Level 3').length;
+        const countL4 = students.filter(s => s.class === 'Level 4').length;
 
-        // Get latest attendance log
-        const todayDateStr = document.getElementById('attendance-date').value;
-        const latestLog = attendanceLogs.find(log => log.date === todayDateStr) || 
-                          (attendanceLogs.length > 0 ? attendanceLogs[0] : null); // Fallback to latest
+        // Render counts in dashboard cards
+        document.getElementById('count-l1').textContent = countL1;
+        document.getElementById('count-l2').textContent = countL2;
+        document.getElementById('count-l3').textContent = countL3;
+        document.getElementById('count-l4').textContent = countL4;
 
-        const rateEl = document.getElementById('stat-attendance-percentage');
-        const presentEl = document.getElementById('stat-present-count');
-        const absentEl = document.getElementById('stat-absent-count');
-
-        if (latestLog) {
-            rateEl.textContent = `${latestLog.stats.rate}%`;
-            presentEl.textContent = latestLog.stats.present;
-            absentEl.textContent = latestLog.stats.absent;
-            
-            // Highlight dashboard panels depending on status
-            const cardRate = document.getElementById('card-attendance-rate');
-            if (latestLog.stats.rate >= 90) {
-                cardRate.style.borderTop = '3px solid var(--color-green)';
-            } else if (latestLog.stats.rate >= 75) {
-                cardRate.style.borderTop = '3px solid var(--color-gold)';
-            } else {
-                cardRate.style.borderTop = '3px solid var(--color-red)';
-            }
-        } else {
-            rateEl.textContent = '0%';
-            presentEl.textContent = '0';
-            absentEl.textContent = '0';
-            document.getElementById('card-attendance-rate').style.borderTop = 'none';
-        }
-
-        // Render Recent Logs Summary Table
-        const recentLogsContainer = document.getElementById('recent-logs-container');
-        if (!recentLogsContainer) return;
-
-        if (attendanceLogs.length === 0) {
-            recentLogsContainer.innerHTML = '<p class="empty-message">لا توجد سجلات حضور مسجلة بعد.</p>';
-            return;
-        }
-
-        // Sort latest logs (descending by date)
-        const sortedLogs = [...attendanceLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
-        
-        recentLogsContainer.innerHTML = '';
-        sortedLogs.forEach(log => {
-            // Format log date for display
-            const logDate = new Date(log.date);
-            const dateStr = logDate.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' });
-            
-            const logItem = document.createElement('div');
-            logItem.className = 'recent-log-item';
-            logItem.innerHTML = `
-                <div class="log-date-label">${dateStr}</div>
-                <div class="log-stats-summary">
-                    <span class="badge badge-present">حاضر: ${log.stats.present}</span>
-                    <span class="badge badge-absent">غائب: ${log.stats.absent}</span>
-                    <span class="badge badge-late">متأخر: ${log.stats.late}</span>
-                </div>
-            `;
-            
-            // Click to view history detail directly
-            logItem.style.cursor = 'pointer';
-            logItem.addEventListener('click', () => {
-                const historyNavLink = document.getElementById('nav-history');
-                if (historyNavLink) {
-                    historyNavLink.click();
-                    setTimeout(() => {
-                        viewHistoryDetail(log.date);
-                    }, 50);
-                }
-            });
-
-            recentLogsContainer.appendChild(logItem);
-        });
-
+        // Total roster size label
+        document.getElementById('perf-total-students-label').textContent = students.length;
     } catch (e) {
         console.error('Error rendering dashboard:', e);
     }
 }
 
-// --- STUDENT MANAGEMENT SCREEN ---
-function setupStudentActions() {
+// --- STUDENT MANAGEMENT ---
+function setupStudentManagement() {
     const form = document.getElementById('add-student-form');
     const searchInput = document.getElementById('search-students');
-    const cancelEditBtn = document.getElementById('btn-cancel-edit');
 
     if (form) {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             try {
-                const studentIdInput = document.getElementById('edit-student-id').value;
                 const name = document.getElementById('student-name').value.trim();
                 const roll = document.getElementById('student-roll').value.trim();
-                const studentClass = document.getElementById('student-class').value;
+                const level = document.getElementById('student-class').value;
 
-                if (!name || !roll || !studentClass) {
-                    showToast('يرجى ملء جميع الحقول المطلوبة.', 'warning');
+                if (!name || !roll || !level) {
+                    showToast('Please fill out all fields.', 'warning');
                     return;
                 }
 
-                // Check duplicate roll number (exclude current edited student)
-                const isDuplicate = students.some(s => s.roll.toLowerCase() === roll.toLowerCase() && s.id !== studentIdInput);
-                if (isDuplicate) {
-                    showToast(`رقم الطالب التعريفي "${roll}" مستخدم بالفعل لمسجل آخر.`, 'danger');
+                // Check roll duplicate
+                const duplicate = students.some(s => s.roll.toLowerCase() === roll.toLowerCase());
+                if (duplicate) {
+                    showToast(`Roll number "${roll}" is already used.`, 'danger');
                     return;
                 }
 
-                if (studentIdInput) {
-                    // Update Mode
-                    const index = students.findIndex(s => s.id === studentIdInput);
-                    if (index !== -1) {
-                        students[index].name = name;
-                        students[index].roll = roll;
-                        students[index].class = studentClass;
-                        showToast(`تم تحديث بيانات الطالب "${name}" بنجاح.`, 'success');
-                    }
-                } else {
-                    // Create Mode
-                    const newStudent = {
-                        id: Date.now().toString(),
-                        name,
-                        roll,
-                        class: studentClass
-                    };
-                    students.push(newStudent);
-                    showToast(`تم إضافة الطالب "${name}" بنجاح.`, 'success');
-                }
-
-                saveStudentsToStorage();
-                resetStudentForm();
+                // Create
+                const student = {
+                    id: Date.now().toString(),
+                    name,
+                    roll,
+                    class: level
+                };
+                students.push(student);
+                saveStudents();
+                
+                showToast(`Enrolled student "${name}" into ${level}!`, 'success');
+                form.reset();
                 renderStudentsList();
+                renderDashboard();
             } catch (err) {
-                console.error('Error saving student:', err);
-                showToast('حدث خطأ أثناء حفظ الطالب.', 'danger');
+                console.error(err);
+                showToast('Error saving student.', 'danger');
             }
-        });
-    }
-
-    if (cancelEditBtn) {
-        cancelEditBtn.addEventListener('click', () => {
-            resetStudentForm();
         });
     }
 
@@ -317,31 +302,21 @@ function setupStudentActions() {
     }
 }
 
-function resetStudentForm() {
-    const form = document.getElementById('add-student-form');
-    if (form) form.reset();
-    
-    document.getElementById('edit-student-id').value = '';
-    document.getElementById('form-action-title').textContent = 'إضافة طالب جديد';
-    document.getElementById('btn-save-student').querySelector('span').textContent = 'حفظ بيانات الطالب';
-    document.getElementById('btn-cancel-edit').classList.add('hidden');
-}
-
-function renderStudentsList(filterQuery = '') {
+function renderStudentsList(query = '') {
     const tbody = document.getElementById('students-list-tbody');
     if (!tbody) return;
 
-    const filtered = students.filter(student => 
-        student.name.toLowerCase().includes(filterQuery.toLowerCase()) ||
-        student.roll.toLowerCase().includes(filterQuery.toLowerCase()) ||
-        student.class.toLowerCase().includes(filterQuery.toLowerCase())
+    const filtered = students.filter(s => 
+        s.name.toLowerCase().includes(query.toLowerCase()) ||
+        s.roll.toLowerCase().includes(query.toLowerCase()) ||
+        s.class.toLowerCase().includes(query.toLowerCase())
     );
 
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="4" class="text-center empty-table-message">
-                    ${filterQuery ? 'لا توجد نتائج تطابق بحثك.' : 'لم يتم إضافة أي طالب بعد. أضف طلاباً من النموذج.'}
+                    ${query ? 'No matching students found.' : 'No students registered. Fill the form to add.'}
                 </td>
             </tr>
         `;
@@ -349,91 +324,63 @@ function renderStudentsList(filterQuery = '') {
     }
 
     tbody.innerHTML = '';
-    filtered.forEach(student => {
+    filtered.forEach(s => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="font-outfit" style="font-weight: 600; color: var(--color-gold);">${student.roll}</td>
-            <td style="font-weight: 600;">${student.name}</td>
-            <td>${student.class}</td>
-            <td>
-                <div class="table-actions">
-                    <button class="btn-icon edit" onclick="editStudent('${student.id}')" title="تعديل">
-                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path></svg>
-                    </button>
-                    <button class="btn-icon delete" onclick="deleteStudent('${student.id}')" title="حذف">
-                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                    </button>
-                </div>
+            <td class="font-outfit" style="font-weight:600; color:var(--color-gold);">${s.roll}</td>
+            <td style="font-weight:600;">${s.name}</td>
+            <td>${s.class}</td>
+            <td class="text-center">
+                <button class="btn-icon delete" onclick="removeStudent('${s.id}')" title="Delete">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
             </td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-// Global functions for inline table button actions
-window.editStudent = function(id) {
+window.removeStudent = function(id) {
     try {
         const student = students.find(s => s.id === id);
         if (!student) return;
 
-        document.getElementById('edit-student-id').value = student.id;
-        document.getElementById('student-name').value = student.name;
-        document.getElementById('student-roll').value = student.roll;
-        document.getElementById('student-class').value = student.class;
-
-        document.getElementById('form-action-title').textContent = 'تعديل بيانات الطالب';
-        document.getElementById('btn-save-student').querySelector('span').textContent = 'تعديل البيانات';
-        document.getElementById('btn-cancel-edit').classList.remove('hidden');
-
-        // Scroll to form on small screens
-        document.getElementById('add-student-form').scrollIntoView({ behavior: 'smooth' });
-    } catch (e) {
-        console.error('Error preparing student edit:', e);
-    }
-};
-
-window.deleteStudent = function(id) {
-    try {
-        const student = students.find(s => s.id === id);
-        if (!student) return;
-
-        if (confirm(`هل أنت متأكد من حذف الطالب "${student.name}" من النظام؟ هذا سيحذف سجلاته السابقة أيضاً.`)) {
-            // Delete from student list
+        if (confirm(`Remove student "${student.name}" from database?`)) {
             students = students.filter(s => s.id !== id);
-            saveStudentsToStorage();
+            saveStudents();
             
-            // Delete from all saved attendance logs
+            // Clean up logs containing this student
             attendanceLogs.forEach(log => {
                 if (log.records[student.roll]) {
                     delete log.records[student.roll];
-                    // Recalculate stats for the log
-                    recalculateLogStats(log);
+                    recalculateStats(log);
                 }
             });
-            saveLogsToStorage();
+            saveLogs();
 
-            showToast(`تم حذف الطالب "${student.name}" بنجاح.`, 'warning');
+            showToast(`Deleted student "${student.name}".`, 'warning');
             renderStudentsList();
             renderDashboard();
         }
     } catch (e) {
-        console.error('Error deleting student:', e);
+        console.error(e);
     }
 };
 
-function recalculateLogStats(log) {
-    const rolls = Object.keys(log.records);
-    const total = rolls.length;
+function recalculateStats(log) {
+    const keys = Object.keys(log.records);
+    const total = keys.length;
     if (total === 0) {
         log.stats = { present: 0, absent: 0, late: 0, rate: 0 };
         return;
     }
 
     let present = 0, absent = 0, late = 0;
-    rolls.forEach(r => {
-        if (log.records[r] === 'present') present++;
-        else if (log.records[r] === 'absent') absent++;
-        else if (log.records[r] === 'late') late++;
+    keys.forEach(k => {
+        const status = log.records[k];
+        if (status === 'present') present++;
+        else if (status === 'absent') absent++;
+        else if (status === 'late') late++;
     });
 
     log.stats = {
@@ -444,24 +391,18 @@ function recalculateLogStats(log) {
     };
 }
 
-// --- ATTENDANCE LOGGING SHEET ---
-function setupAttendanceActions() {
-    const dateInput = document.getElementById('attendance-date');
-    const form = document.getElementById('attendance-sheet-form');
+// --- ATTENDANCE ACTIONS ---
+function setupAttendanceSheet() {
     const bulkPresentBtn = document.getElementById('btn-mark-all-present');
     const bulkAbsentBtn = document.getElementById('btn-mark-all-absent');
-
-    if (dateInput) {
-        dateInput.addEventListener('change', () => {
-            initAttendanceSheet();
-        });
-    }
+    const dateInput = document.getElementById('attendance-date');
+    const form = document.getElementById('attendance-sheet-form');
 
     if (bulkPresentBtn) {
         bulkPresentBtn.addEventListener('click', () => {
             const inputs = document.querySelectorAll('.status-option-input[value="present"]');
             inputs.forEach(input => input.checked = true);
-            showToast('تم تعليم جميع الطلاب كـ حضور في الكشف الحالي.', 'info');
+            showToast('All students marked Present.', 'info');
         });
     }
 
@@ -469,7 +410,14 @@ function setupAttendanceActions() {
         bulkAbsentBtn.addEventListener('click', () => {
             const inputs = document.querySelectorAll('.status-option-input[value="absent"]');
             inputs.forEach(input => input.checked = true);
-            showToast('تم تعليم جميع الطلاب كـ غياب في الكشف الحالي.', 'warning');
+            showToast('All students marked Absent.', 'warning');
+        });
+    }
+
+    if (dateInput) {
+        dateInput.addEventListener('change', () => {
+            const level = document.getElementById('attendance-selected-level').value;
+            if (level) refreshAttendanceSheet(level);
         });
     }
 
@@ -477,112 +425,116 @@ function setupAttendanceActions() {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             try {
+                const level = document.getElementById('attendance-selected-level').value;
                 const dateStr = dateInput.value;
-                if (!dateStr) {
-                    showToast('الرجاء اختيار تاريخ صالح.', 'warning');
+
+                if (!level || !dateStr) {
+                    showToast('Missing details. Please retry.', 'warning');
                     return;
                 }
 
-                if (students.length === 0) {
-                    showToast('لا يوجد طلاب لتسجيل حضورهم. يرجى إضافة طلاب أولاً.', 'warning');
+                const classStudents = students.filter(s => s.class === level);
+                if (classStudents.length === 0) {
+                    showToast('No students enrolled in this level to record attendance.', 'warning');
                     return;
                 }
 
                 const records = {};
-                let present = 0;
-                let absent = 0;
-                let late = 0;
+                let present = 0, absent = 0, late = 0;
 
-                // Collect radio values
-                students.forEach(student => {
-                    const selected = form.querySelector(`input[name="status-${student.roll}"]:checked`);
-                    const status = selected ? selected.value : 'present'; // Default
-                    records[student.roll] = status;
+                classStudents.forEach(s => {
+                    const selected = form.querySelector(`input[name="status-${s.roll}"]:checked`);
+                    const status = selected ? selected.value : 'present';
+                    records[s.roll] = status;
 
                     if (status === 'present') present++;
                     else if (status === 'absent') absent++;
                     else if (status === 'late') late++;
                 });
 
-                const total = students.length;
-                // Attendance rate: present + late divided by total
+                const total = classStudents.length;
                 const rate = Math.round(((present + late) / total) * 100);
 
-                const existingLogIndex = attendanceLogs.findIndex(log => log.date === dateStr);
+                const existingIndex = attendanceLogs.findIndex(l => l.date === dateStr && l.level === level);
                 const logData = {
                     date: dateStr,
+                    level,
                     records,
                     stats: { present, absent, late, rate }
                 };
 
-                if (existingLogIndex !== -1) {
-                    attendanceLogs[existingLogIndex] = logData;
-                    showToast(`تم تحديث كشف الحضور لتاريخ ${dateStr} بنجاح.`, 'success');
+                if (existingIndex !== -1) {
+                    attendanceLogs[existingIndex] = logData;
+                    showToast(`Updated attendance for ${level} on ${dateStr}!`, 'success');
                 } else {
                     attendanceLogs.push(logData);
-                    showToast(`تم حفظ كشف الحضور لتاريخ ${dateStr} بنجاح.`, 'success');
+                    showToast(`Saved attendance for ${level} on ${dateStr}!`, 'success');
                 }
 
-                saveLogsToStorage();
-                renderDashboard();
-                renderHistoryList();
+                saveLogs();
+                switchTab('dashboard');
             } catch (err) {
-                console.error('Error saving attendance:', err);
-                showToast('حدث خطأ أثناء حفظ كشف الحضور.', 'danger');
+                console.error(err);
+                showToast('Error saving attendance.', 'danger');
             }
         });
     }
 }
 
-// Global functions for attendance page
-window.initAttendanceSheet = function() {
-    const tbody = document.getElementById('attendance-sheet-tbody');
-    const submitBtn = document.getElementById('btn-submit-attendance');
-    const dateInput = document.getElementById('attendance-date');
+// Global actions to transition from Dashboard Level Cards
+window.openTakeAttendance = function(levelName) {
+    switchTab('take-attendance');
     
+    // Set level values
+    document.getElementById('attendance-level-title').textContent = `Take Attendance: ${levelName}`;
+    document.getElementById('attendance-selected-level').value = levelName;
+
+    // Refresh Roster sheet
+    refreshAttendanceSheet(levelName);
+};
+
+function refreshAttendanceSheet(levelName) {
+    const tbody = document.getElementById('attendance-sheet-tbody');
+    const dateInput = document.getElementById('attendance-date');
     if (!tbody) return;
 
-    if (students.length === 0) {
+    const classStudents = students.filter(s => s.class === levelName);
+
+    if (classStudents.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="text-center empty-table-message">الرجاء إضافة بعض الطلاب أولاً في قسم إدارة الطلاب لكي تتمكن من تحضيرهم.</td>
+                <td colspan="3" class="text-center empty-table-message">
+                    No students currently enrolled in ${levelName}. Add students in the "Add Student" section first.
+                </td>
             </tr>
         `;
-        if (submitBtn) submitBtn.disabled = true;
         return;
     }
 
-    if (submitBtn) submitBtn.disabled = false;
-
     const dateStr = dateInput.value;
-    // Find if there is already saved attendance for this date
-    const existingLog = attendanceLogs.find(log => log.date === dateStr);
+    const existingLog = attendanceLogs.find(l => l.date === dateStr && l.level === levelName);
 
     tbody.innerHTML = '';
-    students.forEach(student => {
-        // Determine selected status
-        let selectedStatus = 'present'; // Default
-        if (existingLog && existingLog.records[student.roll]) {
-            selectedStatus = existingLog.records[student.roll];
+    classStudents.forEach(s => {
+        let status = 'present'; // default
+        if (existingLog && existingLog.records[s.roll]) {
+            status = existingLog.records[s.roll];
         }
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="font-outfit" style="font-weight: 600; color: var(--color-gold);">${student.roll}</td>
-            <td style="font-weight: 600;">${student.name}</td>
-            <td>${student.class}</td>
+            <td class="font-outfit" style="font-weight:600; color:var(--color-gold);">${s.roll}</td>
+            <td style="font-weight:600;">${s.name}</td>
             <td>
                 <div class="status-options-wrapper">
-                    
-                    <input type="radio" id="status-${student.roll}-present" name="status-${student.roll}" value="present" class="status-option-input" ${selectedStatus === 'present' ? 'checked' : ''}>
-                    <label for="status-${student.roll}-present" class="status-option-label present">حاضر</label>
-                    
-                    <input type="radio" id="status-${student.roll}-late" name="status-${student.roll}" value="late" class="status-option-input" ${selectedStatus === 'late' ? 'checked' : ''}>
-                    <label for="status-${student.roll}-late" class="status-option-label late">متأخر</label>
-                    
-                    <input type="radio" id="status-${student.roll}-absent" name="status-${student.roll}" value="absent" class="status-option-input" ${selectedStatus === 'absent' ? 'checked' : ''}>
-                    <label for="status-${student.roll}-absent" class="status-option-label absent">غائب</label>
-                    
+                    <input type="radio" id="status-${s.roll}-present" name="status-${s.roll}" value="present" class="status-option-input" ${status === 'present' ? 'checked' : ''}>
+                    <label for="status-${s.roll}-present" class="status-option-label present">Present</label>
+
+                    <input type="radio" id="status-${s.roll}-late" name="status-${s.roll}" value="late" class="status-option-input" ${status === 'late' ? 'checked' : ''}>
+                    <label for="status-${s.roll}-late" class="status-option-label late">Late</label>
+
+                    <input type="radio" id="status-${s.roll}-absent" name="status-${s.roll}" value="absent" class="status-option-input" ${status === 'absent' ? 'checked' : ''}>
+                    <label for="status-${s.roll}-absent" class="status-option-label absent">Absent</label>
                 </div>
             </td>
         `;
@@ -590,127 +542,122 @@ window.initAttendanceSheet = function() {
     });
 }
 
-// --- HISTORY SCREEN LOGIC ---
-function setupHistoryActions() {
-    // No special event listeners needed, but container acts dynamically
-}
+// --- VIEW HISTORY LOGS SCREEN ---
+window.openViewHistory = function(levelName) {
+    switchTab('view-history');
+    document.getElementById('history-level-title').textContent = `Class Roster & Logs: ${levelName}`;
+    
+    renderHistoryDatesList(levelName);
+};
 
-window.renderHistoryList = function() {
+function renderHistoryDatesList(levelName) {
     const container = document.getElementById('history-dates-container');
+    const placeholderMsg = document.getElementById('detail-placeholder-msg');
+    const tableWrapper = document.getElementById('detail-table-wrapper');
+    const selectedDateLabel = document.getElementById('detail-selected-date');
+    const statsContainer = document.getElementById('detail-stats-badges');
+
     if (!container) return;
 
-    if (attendanceLogs.length === 0) {
-        container.innerHTML = '<p class="empty-message">لا توجد كشوفات مسجلة سابقاً في النظام.</p>';
-        document.getElementById('detail-placeholder-msg').classList.remove('hidden');
-        document.getElementById('detail-table-wrapper').classList.add('hidden');
-        document.getElementById('detail-selected-date').textContent = 'لم يحدد بعد';
-        document.getElementById('detail-stats-badges').innerHTML = '';
+    const classLogs = attendanceLogs.filter(l => l.level === levelName);
+
+    // Initial reset of details view
+    placeholderMsg.classList.remove('hidden');
+    tableWrapper.classList.add('hidden');
+    selectedDateLabel.textContent = 'None';
+    statsContainer.innerHTML = '';
+
+    if (classLogs.length === 0) {
+        container.innerHTML = '<p class="empty-message">No attendance sessions saved yet for this level.</p>';
         return;
     }
 
-    // Sort by date (descending)
-    const sorted = [...attendanceLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Sort logs descending by date
+    const sorted = [...classLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
 
     container.innerHTML = '';
     sorted.forEach(log => {
-        const logDate = new Date(log.date);
-        const dateStr = logDate.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        const dateObj = new Date(log.date);
+        const displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
         
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'history-date-btn';
         btn.setAttribute('data-date', log.date);
+        btn.setAttribute('data-level', log.level);
         btn.innerHTML = `
             <div class="history-date-btn-top">
-                <span class="date-text">${dateStr}</span>
+                <span class="date-text">${displayDate}</span>
                 <span class="badge ${log.stats.rate >= 90 ? 'badge-present' : log.stats.rate >= 75 ? 'badge-late' : 'badge-absent'} font-outfit">${log.stats.rate}%</span>
             </div>
-            <div class="log-stats-summary" style="margin-top: 4px;">
-                <span class="badge badge-present">حاضر: ${log.stats.present}</span>
-                <span class="badge badge-absent">غائب: ${log.stats.absent}</span>
-                <span class="badge badge-late">متأخر: ${log.stats.late}</span>
+            <div style="display:flex; gap:8px; margin-top: 4px;">
+                <span class="badge badge-present">P: ${log.stats.present}</span>
+                <span class="badge badge-late">L: ${log.stats.late}</span>
+                <span class="badge badge-absent">A: ${log.stats.absent}</span>
             </div>
         `;
 
         btn.addEventListener('click', () => {
-            // Toggle active state
             document.querySelectorAll('.history-date-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            viewHistoryDetail(log.date);
+            renderHistoryLogDetails(log.date, log.level);
         });
 
         container.appendChild(btn);
     });
 }
 
-window.viewHistoryDetail = function(dateStr) {
-    try {
-        const log = attendanceLogs.find(l => l.date === dateStr);
-        if (!log) return;
+function renderHistoryLogDetails(dateStr, levelName) {
+    const log = attendanceLogs.find(l => l.date === dateStr && l.level === levelName);
+    if (!log) return;
 
-        // Update selected date text
-        const logDate = new Date(log.date);
-        const formattedDate = logDate.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' });
-        document.getElementById('detail-selected-date').textContent = formattedDate;
+    // Set date header
+    const dateObj = new Date(log.date);
+    document.getElementById('detail-selected-date').textContent = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 
-        // Render badges
-        const badgesContainer = document.getElementById('detail-stats-badges');
-        badgesContainer.innerHTML = `
-            <span class="badge badge-present">معدل الحضور: ${log.stats.rate}%</span>
-            <span class="badge badge-present" style="background-color:rgba(6, 214, 160, 0.1)">حضور: ${log.stats.present}</span>
-            <span class="badge badge-late" style="background-color:rgba(255, 209, 102, 0.1)">متأخر: ${log.stats.late}</span>
-            <span class="badge badge-absent" style="background-color:rgba(230, 57, 70, 0.1)">غياب: ${log.stats.absent}</span>
-        `;
+    // Set stats summary badges
+    const statsContainer = document.getElementById('detail-stats-badges');
+    statsContainer.innerHTML = `
+        <span class="badge badge-present">Att. Rate: ${log.stats.rate}%</span>
+        <span class="badge badge-present" style="background-color:rgba(6, 214, 160, 0.1)">Present: ${log.stats.present}</span>
+        <span class="badge badge-late" style="background-color:rgba(255, 209, 102, 0.1)">Late: ${log.stats.late}</span>
+        <span class="badge badge-absent" style="background-color:rgba(230, 57, 70, 0.1)">Absent: ${log.stats.absent}</span>
+    `;
 
-        // Render detailed student attendance status rows
-        const tbody = document.getElementById('history-detail-tbody');
-        tbody.innerHTML = '';
+    // Render roster statuses
+    const tbody = document.getElementById('history-detail-tbody');
+    tbody.innerHTML = '';
 
-        if (students.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center">لا يوجد طلاب في كشف هذا اليوم.</td></tr>';
-        } else {
-            students.forEach(student => {
-                const status = log.records[student.roll] || 'absent'; // Fallback if record was missing for new student
-                
-                let statusLabel = 'غائب';
-                let badgeClass = 'badge-absent';
-                
-                if (status === 'present') {
-                    statusLabel = 'حاضر';
-                    badgeClass = 'badge-present';
-                } else if (status === 'late') {
-                    statusLabel = 'متأخر';
-                    badgeClass = 'badge-late';
-                }
+    const classStudents = students.filter(s => s.class === levelName);
+    if (classStudents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center empty-table-message">No student data.</td></tr>';
+    } else {
+        classStudents.forEach(s => {
+            const status = log.records[s.roll] || 'absent';
+            let label = 'Absent';
+            let badgeClass = 'badge-absent';
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="font-outfit" style="font-weight:600; color:var(--color-gold);">${student.roll}</td>
-                    <td style="font-weight:600;">${student.name}</td>
-                    <td>${student.class}</td>
-                    <td class="text-center">
-                        <span class="badge ${badgeClass}">${statusLabel}</span>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Show table wrapper, hide placeholder
-        document.getElementById('detail-placeholder-msg').classList.add('hidden');
-        document.getElementById('detail-table-wrapper').classList.remove('hidden');
-
-        // Make sure the active button in the list is visually selected
-        const buttons = document.querySelectorAll('.history-date-btn');
-        buttons.forEach(btn => {
-            if (btn.getAttribute('data-date') === dateStr) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
+            if (status === 'present') {
+                label = 'Present';
+                badgeClass = 'badge-present';
+            } else if (status === 'late') {
+                label = 'Late';
+                badgeClass = 'badge-late';
             }
-        });
 
-    } catch (e) {
-        console.error('Error rendering history details:', e);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="font-outfit" style="font-weight:600; color:var(--color-gold);">${s.roll}</td>
+                <td style="font-weight:600;">${s.name}</td>
+                <td class="text-center">
+                    <span class="badge ${badgeClass}">${label}</span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
     }
+
+    // Toggle panels
+    document.getElementById('detail-placeholder-msg').classList.add('hidden');
+    document.getElementById('detail-table-wrapper').classList.remove('hidden');
 }
