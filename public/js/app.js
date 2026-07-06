@@ -237,13 +237,60 @@ function renderDashboard() {
         const countL4 = students.filter(s => s.class === 'Level 4').length;
 
         // Render counts in dashboard cards
-        document.getElementById('count-l1').textContent = countL1;
-        document.getElementById('count-l2').textContent = countL2;
-        document.getElementById('count-l3').textContent = countL3;
-        document.getElementById('count-l4').textContent = countL4;
+        const c1 = document.getElementById('count-l1');
+        const c2 = document.getElementById('count-l2');
+        const c3 = document.getElementById('count-l3');
+        const c4 = document.getElementById('count-l4');
+        
+        if (c1) c1.textContent = countL1;
+        if (c2) c2.textContent = countL2;
+        if (c3) c3.textContent = countL3;
+        if (c4) c4.textContent = countL4;
 
-        // Total roster size label
-        document.getElementById('perf-total-students-label').textContent = students.length;
+        // Total roster size labels
+        const perfLabel = document.getElementById('perf-total-students-label');
+        if (perfLabel) perfLabel.textContent = students.length;
+
+        const visualLabel = document.getElementById('visual-mentored-count');
+        if (visualLabel) visualLabel.textContent = students.length;
+
+        // Quick Insights updates (Recent Logs list)
+        const insightsContainer = document.getElementById('quick-insights-container');
+        if (insightsContainer) {
+            if (attendanceLogs.length === 0) {
+                insightsContainer.innerHTML = '<p class="insight-text">Recent attendance sessions logs will update here as you save reports.</p>';
+            } else {
+                const sortedLogs = [...attendanceLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 2);
+                insightsContainer.innerHTML = '';
+                sortedLogs.forEach(log => {
+                    const dateObj = new Date(log.date);
+                    const displayDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                    
+                    const div = document.createElement('div');
+                    div.className = 'insight-text';
+                    div.style.marginBottom = '10px';
+                    div.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+                    div.style.paddingBottom = '8px';
+                    div.style.cursor = 'pointer';
+                    
+                    div.innerHTML = `
+                        <strong style="color:var(--color-border-active);">${log.level}</strong> on <strong>${displayDate}</strong>:<br>
+                        Rate: <span style="color:#ffffff; font-weight:700;">${log.stats.rate}%</span> | 
+                        Present: ${log.stats.present} | Absent: ${log.stats.absent}
+                    `;
+                    
+                    div.addEventListener('click', () => {
+                        openViewHistory(log.level);
+                        setTimeout(() => {
+                            renderHistoryLogDetails(log.date, log.level);
+                        }, 50);
+                    });
+                    
+                    insightsContainer.appendChild(div);
+                });
+            }
+        }
+
     } catch (e) {
         console.error('Error rendering dashboard:', e);
     }
@@ -327,7 +374,7 @@ function renderStudentsList(query = '') {
     filtered.forEach(s => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="font-outfit" style="font-weight:600; color:var(--color-gold);">${s.roll}</td>
+            <td class="font-outfit" style="font-weight:600; color:var(--color-aura);">${s.roll}</td>
             <td style="font-weight:600;">${s.name}</td>
             <td>${s.class}</td>
             <td class="text-center">
@@ -523,7 +570,7 @@ function refreshAttendanceSheet(levelName) {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="font-outfit" style="font-weight:600; color:var(--color-gold);">${s.roll}</td>
+            <td class="font-outfit" style="font-weight:600; color:var(--color-aura);">${s.roll}</td>
             <td style="font-weight:600;">${s.name}</td>
             <td>
                 <div class="status-options-wrapper">
@@ -541,6 +588,17 @@ function refreshAttendanceSheet(levelName) {
         tbody.appendChild(tr);
     });
 }
+
+// Interactive button helpers on dashboard
+window.openQuickClass = function() {
+    // Open attendance sheet for Level 1 by default
+    openTakeAttendance('Level 1');
+};
+
+window.openQuickRoster = function() {
+    // Open roster history logs for Level 1 by default
+    openViewHistory('Level 1');
+};
 
 // --- VIEW HISTORY LOGS SCREEN ---
 window.openViewHistory = function(levelName) {
@@ -647,7 +705,7 @@ function renderHistoryLogDetails(dateStr, levelName) {
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td class="font-outfit" style="font-weight:600; color:var(--color-gold);">${s.roll}</td>
+                <td class="font-outfit" style="font-weight:600; color:var(--color-aura);">${s.roll}</td>
                 <td style="font-weight:600;">${s.name}</td>
                 <td class="text-center">
                     <span class="badge ${badgeClass}">${label}</span>
