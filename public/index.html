@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الحضور والغياب الذكي</title>
+    <!-- Google Fonts: Cairo for Arabic, Outfit for Numbers -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-container">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="app-sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" class="gold-icon"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </div>
+                <h1 class="brand-title">نظام الحضور <span class="gold-text">الذكي</span></h1>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li>
+                        <button class="nav-link active" id="nav-dashboard" data-tab="dashboard">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="nav-icon"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                            <span>لوحة التحكم</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-link" id="nav-students" data-tab="students">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="nav-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            <span>إدارة الطلاب</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-link" id="nav-log-attendance" data-tab="log-attendance">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="nav-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            <span>تسجيل الحضور</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-link" id="nav-history" data-tab="history">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="nav-icon"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            <span>سجل الحضور</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <span class="version-label">المرحلة 2 (تطوير محلي)</span>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="main-content">
+            
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-search">
+                    <span class="date-today" id="current-date-display">تحميل التاريخ...</span>
+                </div>
+                <div class="header-profile">
+                    <div class="profile-info">
+                        <span class="profile-name">الأستاذ المشرف</span>
+                        <span class="profile-role">مدير النظام</span>
+                    </div>
+                    <div class="profile-avatar">أ</div>
+                </div>
+            </header>
+
+            <!-- Content Screens Container -->
+            <div class="content-screens">
+                
+                <!-- 1. DASHBOARD SCREEN -->
+                <section class="tab-content active" id="tab-dashboard">
+                    <div class="screen-header animate-fade-in">
+                        <h2 class="screen-title">نظرة عامة على الإحصائيات</h2>
+                        <p class="screen-subtitle">متابعة الحضور والغياب اليومي للطلاب بشكل لحظي.</p>
+                    </div>
+
+                    <!-- Statistics Cards Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card" id="card-total-students">
+                            <div class="stat-icon-wrapper blue-bg">
+                                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="blue-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                            </div>
+                            <div class="stat-data">
+                                <span class="stat-label">إجمالي الطلاب</span>
+                                <h3 class="stat-value font-outfit" id="stat-total-count">0</h3>
+                            </div>
+                        </div>
+
+                        <div class="stat-card" id="card-attendance-rate">
+                            <div class="stat-icon-wrapper gold-bg">
+                                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="gold-icon"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            </div>
+                            <div class="stat-data">
+                                <span class="stat-label">معدل الحضور اليوم</span>
+                                <h3 class="stat-value font-outfit" id="stat-attendance-percentage">0%</h3>
+                            </div>
+                        </div>
+
+                        <div class="stat-card" id="card-present-today">
+                            <div class="stat-icon-wrapper green-bg">
+                                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="green-icon"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+                            </div>
+                            <div class="stat-data">
+                                <span class="stat-label">الحاضرون اليوم</span>
+                                <h3 class="stat-value font-outfit" id="stat-present-count">0</h3>
+                            </div>
+                        </div>
+
+                        <div class="stat-card" id="card-absent-today">
+                            <div class="stat-icon-wrapper red-bg">
+                                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="red-icon"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="18" y1="8" x2="22" y2="12"></line><line x1="22" y1="8" x2="18" y2="12"></line></svg>
+                            </div>
+                            <div class="stat-data">
+                                <span class="stat-label">الغائبون اليوم</span>
+                                <h3 class="stat-value font-outfit" id="stat-absent-count">0</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Layout Details -->
+                    <div class="dashboard-details">
+                        <!-- Quick Log Card -->
+                        <div class="detail-card main-action-card">
+                            <div class="card-header">
+                                <h4 class="card-title">إجراء سريع للحضور اليومي</h4>
+                            </div>
+                            <div class="card-body centered-content">
+                                <p class="action-description">سجل حضور وغياب طلابك اليوم بسرعة وسهولة.</p>
+                                <button class="btn btn-primary" id="btn-quick-log">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                    <span>افتح سجل التحضير الآن</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recent Log Summary -->
+                        <div class="detail-card">
+                            <div class="card-header">
+                                <h4 class="card-title">آخر العمليات المسجلة</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="recent-logs-list" id="recent-logs-container">
+                                    <p class="empty-message">لا توجد سجلات حضور مسجلة بعد.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. STUDENTS SCREEN -->
+                <section class="tab-content" id="tab-students">
+                    <div class="screen-header">
+                        <h2 class="screen-title">إدارة ملفات الطلاب</h2>
+                        <p class="screen-subtitle">إضافة طلاب جدد، وتعديل بياناتهم أو حذفهم من النظام.</p>
+                    </div>
+
+                    <div class="workspace-grid">
+                        <!-- Add Student Form Container -->
+                        <div class="form-container-card">
+                            <div class="card-header">
+                                <h4 class="card-title" id="form-action-title">إضافة طالب جديد</h4>
+                            </div>
+                            <div class="card-body">
+                                <form id="add-student-form">
+                                    <input type="hidden" id="edit-student-id">
+                                    
+                                    <div class="form-group">
+                                        <label for="student-name" class="form-label">اسم الطالب الكامل</label>
+                                        <input type="text" id="student-name" class="form-input" placeholder="مثال: أحمد محمد البارودي" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="student-roll" class="form-label">الرقم التعريفي (الوطني أو الدراسي)</label>
+                                        <input type="text" id="student-roll" class="form-input font-outfit" placeholder="مثال: ST202601" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="student-class" class="form-label">الصف / الشعبة الدراسية</label>
+                                        <select id="student-class" class="form-input" required>
+                                            <option value="" disabled selected>اختر الصف...</option>
+                                            <option value="المستوى الأول">المستوى الأول</option>
+                                            <option value="المستوى الثاني">المستوى الثاني</option>
+                                            <option value="المستوى الثالث">المستوى الثالث</option>
+                                            <option value="المستوى الرابع">المستوى الرابع</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn btn-primary w-full" id="btn-save-student">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                            <span>حفظ بيانات الطالب</span>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary w-full hidden" id="btn-cancel-edit">
+                                            <span>إلغاء التعديل</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Students List Table Card -->
+                        <div class="table-container-card">
+                            <div class="card-header flex-space-between">
+                                <h4 class="card-title">قائمة الطلاب المضافين</h4>
+                                <div class="search-box-wrapper">
+                                    <input type="text" id="search-students" class="search-input" placeholder="ابحث باسم الطالب...">
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="data-table" id="students-table">
+                                        <thead>
+                                            <tr>
+                                                <th>الرقم التعريفي</th>
+                                                <th>اسم الطالب</th>
+                                                <th>الصف الدراسي</th>
+                                                <th class="text-center">الإجراءات</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="students-list-tbody">
+                                            <!-- Dynamic student rows will be appended here -->
+                                            <tr>
+                                                <td colspan="4" class="text-center empty-table-message">لم يتم إضافة أي طالب بعد. أضف طلاباً من القائمة الجانبية.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. LOG ATTENDANCE SCREEN -->
+                <section class="tab-content" id="tab-log-attendance">
+                    <div class="screen-header">
+                        <h2 class="screen-title">تسجيل ورصد الحضور والغياب</h2>
+                        <p class="screen-subtitle">قم باختيار التاريخ وقم بتحضير الطلاب وتحديد حالتهم بدقة.</p>
+                    </div>
+
+                    <div class="attendance-controls-card">
+                        <div class="card-body flex-space-between flex-wrap gap-md">
+                            <div class="control-group">
+                                <label for="attendance-date" class="form-label inline-label">تاريخ التحضير:</label>
+                                <input type="date" id="attendance-date" class="form-input date-picker font-outfit" required>
+                            </div>
+                            <div class="quick-bulk-actions">
+                                <button type="button" class="btn btn-outline" id="btn-mark-all-present">
+                                    <span>تعليم الكل كـ حضور ✔</span>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" id="btn-mark-all-absent">
+                                    <span>تعليم الكل كـ غياب ✖</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Recording Sheet Card -->
+                    <div class="attendance-sheet-card">
+                        <div class="card-header">
+                            <h4 class="card-title">كشف رصد الحضور اليومي</h4>
+                        </div>
+                        <div class="card-body">
+                            <form id="attendance-sheet-form">
+                                <div class="table-responsive">
+                                    <table class="data-table" id="attendance-sheet-table">
+                                        <thead>
+                                            <tr>
+                                                <th>الرقم التعريفي</th>
+                                                <th>اسم الطالب</th>
+                                                <th>الصف الدراسي</th>
+                                                <th class="text-center">حالة الحضور</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="attendance-sheet-tbody">
+                                            <!-- Dynamic rows for marking attendance will go here -->
+                                            <tr>
+                                                <td colspan="4" class="text-center empty-table-message">الرجاء إضافة بعض الطلاب أولاً في قسم إدارة الطلاب لكي تتمكن من تحضيرهم.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="sheet-actions">
+                                    <button type="submit" class="btn btn-success" id="btn-submit-attendance" disabled>
+                                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                        <span>حفظ كشف الحضور والغياب اليوم</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. HISTORY SCREEN -->
+                <section class="tab-content" id="tab-history">
+                    <div class="screen-header">
+                        <h2 class="screen-title">سجل الحضور والغياب التاريخي</h2>
+                        <p class="screen-subtitle">مراجعة كشوفات الحضور القديمة التي تم رصدها واستعراض تفاصيلها.</p>
+                    </div>
+
+                    <div class="workspace-grid history-grid">
+                        
+                        <!-- Log Dates History List Card -->
+                        <div class="history-list-card">
+                            <div class="card-header">
+                                <h4 class="card-title">الكشوفات المسجلة سابقاً</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="history-dates-list" id="history-dates-container">
+                                    <p class="empty-message">لا توجد كشوفات مسجلة سابقاً في النظام.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Date Details Report Card -->
+                        <div class="history-details-card" id="history-details-section">
+                            <div class="card-header flex-space-between">
+                                <h4 class="card-title">تفاصيل الكشف: <span class="gold-text font-outfit" id="detail-selected-date">لم يحدد بعد</span></h4>
+                                <div class="details-stats font-outfit" id="detail-stats-badges">
+                                    <!-- Dynamic badges will load here -->
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="details-placeholder" id="detail-placeholder-msg">
+                                    <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" class="placeholder-icon"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    <p>اختر أحد الكشوفات المسجلة من القائمة لاستعراض تفاصيل رصد الطلاب.</p>
+                                </div>
+                                <div class="table-responsive hidden" id="detail-table-wrapper">
+                                    <table class="data-table" id="history-detail-table">
+                                        <thead>
+                                            <tr>
+                                                <th>الرقم التعريفي</th>
+                                                <th>اسم الطالب</th>
+                                                <th>الصف الدراسي</th>
+                                                <th class="text-center">الحالة</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="history-detail-tbody">
+                                            <!-- Dynamic details rows will be appended here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- Dynamic Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- App Script -->
+    <script src="js/app.js"></script>
+</body>
+</html>

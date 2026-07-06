@@ -1,0 +1,9 @@
+# Dependecies
+node_modules/
+
+# Local Netlify folder
+.netlify/
+
+# Environment Variables
+.env
+*.env
