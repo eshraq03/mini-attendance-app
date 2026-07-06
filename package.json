@@ -19,5 +19,8 @@
   "description": "",
   "devDependencies": {
     "netlify-cli": "^26.1.0"
+  },
+  "dependencies": {
+    "pg": "^8.22.0"
   }
 }

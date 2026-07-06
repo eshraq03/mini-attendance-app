@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isLoggedIn) {
             renderDashboard();
             renderStudentsList();
+            syncWithBackend(); // Run backend sync in background
         }
     } catch (error) {
         console.error('Initialization error:', error);
@@ -38,9 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- LOAD/SAVE LOCALSTORAGE ---
+// --- LOAD/SAVE LOCALSTORAGE & BACKEND SYNC ---
 function loadData() {
-    // Load students
+    // Load students from local cache
     const storedStudents = localStorage.getItem(KEY_STUDENTS);
     if (storedStudents) {
         students = JSON.parse(storedStudents);
@@ -49,7 +50,7 @@ function loadData() {
         saveStudents();
     }
 
-    // Load attendance logs
+    // Load attendance logs from local cache
     const storedLogs = localStorage.getItem(KEY_LOGS);
     if (storedLogs) {
         attendanceLogs = JSON.parse(storedLogs);
@@ -68,6 +69,33 @@ function saveStudents() {
 
 function saveLogs() {
     localStorage.setItem(KEY_LOGS, JSON.stringify(attendanceLogs));
+}
+
+async function syncWithBackend() {
+    try {
+        const response = await fetch('/.netlify/functions/get_data');
+        if (!response.ok) throw new Error('Fetch failed');
+        
+        const data = await response.json();
+        
+        // Update local state with latest database rows
+        students = data.students || [];
+        attendanceLogs = data.logs || [];
+        
+        // Save to cache
+        saveStudents();
+        saveLogs();
+        
+        // Rerender dashboard & rosters
+        if (isLoggedIn) {
+            renderDashboard();
+            renderStudentsList();
+        }
+        console.log('Database synced successfully with NeonDB PostgreSQL.');
+    } catch (err) {
+        console.warn('Failed to sync with backend database. Falling back to local cache.', err);
+        showToast('Database offline. Running in local fallback mode.', 'warning');
+    }
 }
 
 // --- AUTHENTICATION ---
@@ -107,6 +135,9 @@ function setupAuthentication() {
                 // Render initial views
                 renderDashboard();
                 renderStudentsList();
+                
+                // Sync data
+                syncWithBackend();
             }
         });
     }
@@ -134,8 +165,6 @@ function setupAuthentication() {
 // --- GENERAL APP UTILS ---
 function setupDateTime() {
     const today = new Date();
-    
-    // Arabic formatted date in header
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const formattedDate = today.toLocaleDateString('en-US', dateOptions);
     const dateDisplay = document.getElementById('current-date-display');
@@ -302,7 +331,7 @@ function setupStudentManagement() {
     const searchInput = document.getElementById('search-students');
 
     if (form) {
-        form.addEventListener('submit', (e) => {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
                 const name = document.getElementById('student-name').value.trim();
@@ -314,27 +343,60 @@ function setupStudentManagement() {
                     return;
                 }
 
-                // Check roll duplicate
-                const duplicate = students.some(s => s.roll.toLowerCase() === roll.toLowerCase());
-                if (duplicate) {
-                    showToast(`Roll number "${roll}" is already used.`, 'danger');
-                    return;
-                }
+                // Submit to backend
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.disabled = true;
 
-                // Create
-                const student = {
-                    id: Date.now().toString(),
-                    name,
-                    roll,
-                    class: level
-                };
-                students.push(student);
-                saveStudents();
-                
-                showToast(`Enrolled student "${name}" into ${level}!`, 'success');
-                form.reset();
-                renderStudentsList();
-                renderDashboard();
+                try {
+                    const response = await fetch('/.netlify/functions/save_student', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, roll, class: level })
+                    });
+                    
+                    if (response.status === 409) {
+                        showToast(`Roll number "${roll}" already exists in NeonDB.`, 'danger');
+                        return;
+                    }
+                    
+                    if (!response.ok) throw new Error('Failed to save student.');
+
+                    const newStudent = await response.json();
+
+                    // Add locally
+                    students.push(newStudent);
+                    saveStudents();
+                    
+                    showToast(`Enrolled student "${name}" into ${level}!`, 'success');
+                    form.reset();
+                    renderStudentsList();
+                    renderDashboard();
+                } catch (err) {
+                    console.warn('Backend save failed. Falling back to local offline logic.', err);
+                    
+                    // Local fallback
+                    const duplicate = students.some(s => s.roll.toLowerCase() === roll.toLowerCase());
+                    if (duplicate) {
+                        showToast(`Roll number "${roll}" is already used.`, 'danger');
+                        return;
+                    }
+
+                    const student = {
+                        id: Date.now().toString(),
+                        name,
+                        roll,
+                        class: level
+                    };
+                    students.push(student);
+                    saveStudents();
+                    
+                    showToast(`Offline: Student "${name}" saved locally.`, 'warning');
+                    form.reset();
+                    renderStudentsList();
+                    renderDashboard();
+                } finally {
+                    if (submitBtn) submitBtn.disabled = false;
+                }
             } catch (err) {
                 console.error(err);
                 showToast('Error saving student.', 'danger');
@@ -387,12 +449,26 @@ function renderStudentsList(query = '') {
     });
 }
 
-window.removeStudent = function(id) {
+window.removeStudent = async function(id) {
     try {
         const student = students.find(s => s.id === id);
         if (!student) return;
 
         if (confirm(`Remove student "${student.name}" from database?`)) {
+            // Delete from backend
+            try {
+                const response = await fetch('/.netlify/functions/delete_student', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roll: student.roll })
+                });
+                if (!response.ok) throw new Error('Delete failed');
+            } catch (err) {
+                console.warn('Backend delete failed, removing locally only:', err);
+                showToast('Offline: Student deleted locally.', 'warning');
+            }
+
+            // Remove locally
             students = students.filter(s => s.id !== id);
             saveStudents();
             
@@ -469,7 +545,7 @@ function setupAttendanceSheet() {
     }
 
     if (form) {
-        form.addEventListener('submit', (e) => {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
                 const level = document.getElementById('attendance-selected-level').value;
@@ -502,20 +578,39 @@ function setupAttendanceSheet() {
                 const total = classStudents.length;
                 const rate = Math.round(((present + late) / total) * 100);
 
+                const stats = { present, absent, late, rate };
+
+                // Submit to backend
+                const submitBtn = document.getElementById('btn-submit-attendance');
+                if (submitBtn) submitBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/.netlify/functions/save_attendance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ date: dateStr, level, records, stats })
+                    });
+                    if (!response.ok) throw new Error('Save attendance failed');
+                } catch (err) {
+                    console.warn('Backend save attendance failed, saving locally:', err);
+                    showToast('Offline: Attendance saved locally only.', 'warning');
+                }
+
+                // Save locally
                 const existingIndex = attendanceLogs.findIndex(l => l.date === dateStr && l.level === level);
                 const logData = {
                     date: dateStr,
                     level,
                     records,
-                    stats: { present, absent, late, rate }
+                    stats
                 };
 
                 if (existingIndex !== -1) {
                     attendanceLogs[existingIndex] = logData;
-                    showToast(`Updated attendance for ${level} on ${dateStr}!`, 'success');
+                    if (submitBtn) showToast(`Updated attendance for ${level} on ${dateStr}!`, 'success');
                 } else {
                     attendanceLogs.push(logData);
-                    showToast(`Saved attendance for ${level} on ${dateStr}!`, 'success');
+                    if (submitBtn) showToast(`Saved attendance for ${level} on ${dateStr}!`, 'success');
                 }
 
                 saveLogs();
@@ -523,6 +618,9 @@ function setupAttendanceSheet() {
             } catch (err) {
                 console.error(err);
                 showToast('Error saving attendance.', 'danger');
+            } finally {
+                const submitBtn = document.getElementById('btn-submit-attendance');
+                if (submitBtn) submitBtn.disabled = false;
             }
         });
     }
@@ -531,8 +629,6 @@ function setupAttendanceSheet() {
 // Global actions to transition from Dashboard Level Cards
 window.openTakeAttendance = function(levelName) {
     switchTab('take-attendance');
-    
-    // Set level values
     document.getElementById('attendance-level-title').textContent = `Take Attendance: ${levelName}`;
     document.getElementById('attendance-selected-level').value = levelName;
 
@@ -591,12 +687,10 @@ function refreshAttendanceSheet(levelName) {
 
 // Interactive button helpers on dashboard
 window.openQuickClass = function() {
-    // Open attendance sheet for Level 1 by default
     openTakeAttendance('Level 1');
 };
 
 window.openQuickRoster = function() {
-    // Open roster history logs for Level 1 by default
     openViewHistory('Level 1');
 };
 
