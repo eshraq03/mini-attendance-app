@@ -1,23 +1,40 @@
-# Spoken English - Attendance & Roster Management Portal
+# بوابة تسجيل حضور وغياب Spoken English (Spoken English Attendance Portal)
 
-A premium, interactive, dark-theme attendance and roster portal designed for the **Spoken English** academy platform.
-
----
-
-## 🛠️ Tech Stack & Architecture
-* **Frontend:** HTML5, CSS3 (Vanilla), and Vanilla JavaScript (No React/Vue/Angular).
-* **Backend:** Netlify Serverless Functions (Node.js).
-* **Database:** NeonDB (PostgreSQL) with connection pooling.
-* **Hosting:** Netlify (CI/CD via GitHub).
+منصة تدوين حضور وغياب ذكية وعصرية مخصصة لأكاديمية **Spoken English**، مصممة لمساعدة المعلمين في رصد الحضور اليومي للمستويات الأربعة وإدارة سجلات الطلاب بكفاءة وسهولة.
 
 ---
 
-## 📂 Project Structure
-* `public/`
-  * `index.html`: The main single-page application structure.
-  * `css/style.css`: Custom theme stylesheets (Midnight Navy background, glowing cyan outlines, sky-blue aura).
-  * `js/app.js`: Client-side logic, form management, local storage fallback, and serverless API integration.
-* `netlify.toml`: Netlify build, publish folder configurations, and serverless routes.
-* `README.md`: Project overview and guide (this file).
-* `05_KNOWLEDGE.md`: Document detailing project rationale and design justifications.
-* `06_DECISIONS.md`: History of decisions taken during pair programming.
+## 🌟 مميزات المنصة (Key Features)
+
+### 🎨 واجهة زجاجية داكنة وعصرية (Midnight Neon Glassmorphism UI)
+* تصميم مريح للعين أثناء الاستخدام لفترات طويلة في القاعات الدراسية.
+* إضاءة وهالات نيون ذكية توضح حالة كل مستوى دراسي ونسب حضور الطلاب فورياً.
+* شعار القناع الضاحك ثلاثي الأبعاد يتحرك بانسيابية في الخلفية.
+
+### 📊 رصد الحضور الذكي (Attendance Management)
+* تقسيم الطلاب بحسب مستوياتهم الدراسية الأربعة (Level 1 to Level 4) لتسهيل الفلترة.
+* أزرار رصد سريعة لتسجيل جميع الطلاب كحاضرين أو غائبين بنقرة واحدة.
+* تحديث فوري ومباشر لنسب الحضور المئوية والإحصائيات بمجرد التغيير.
+
+### 💾 قاعدة بيانات سحابية متصلة (NeonDB PostgreSQL Backend)
+* مزامنة البيانات تلقائياً مع خادم PostgreSQL سحابي على منصة **NeonDB** عبر دوال Netlify Serverless.
+* استخدام خاصية **تجميع الاتصالات (Connection Pooling)** لضمان ثبات الاتصال وعدم توقف الموقع تحت الضغط المتزامن.
+
+### 📡 دعم انقطاع الإنترنت (Hybrid Offline-First Sync)
+* في حال فقدان شبكة الإنترنت داخل القاعة الدراسية، يقوم الموقع بحفظ التعديلات محلياً في الذاكرة التخزينية للمتصفح (`LocalStorage`) لضمان عدم توقف المدرس، وتتم المزامنة تلقائياً فور استعادة الاتصال بالإنترنت.
+
+---
+
+## 📂 بنية مجلدات المشروع (Project Structure Overview)
+* `public/`: ملفات الواجهة الأمامية:
+  * `index.html`: هيكل التطبيق الأحادي الصفحة (SPA).
+  * `css/style.css`: التصاميم والجماليات وهالات النيون وحركة الشعار.
+  * `js/app.js`: العقل المحرك للواجهة، وتنسيق المزامنة السحابية والمحلية.
+* `netlify/functions/`: الدوال الخلفية لـ Netlify:
+  * `get_data.js`: جلب بيانات الطلاب والكشوفات السحابية.
+  * `save_student.js`: إدراج طالب جديد مع منع التكرار.
+  * `delete_student.js`: حذف طالب من قاعدة البيانات.
+  * `save_attendance.js`: حفظ أو تحديث الكشوفات اليومية.
+* `schema.sql`: كود تهيئة جداول قاعدة البيانات.
+* `05_KNOWLEDGE.md`: وثيقة المبررات المعمارية والفنية للمشروع.
+* `11_TROUBLESHOOTING.md`: سجل حل واستكشاف الأخطاء البرمجية.
