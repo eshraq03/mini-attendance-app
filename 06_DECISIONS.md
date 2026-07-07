@@ -1,35 +1,49 @@
-# Architectural Decision Records (ADRs)
+# وثيقة القرارات الفنية والمبررات (06_DECISIONS.md)
 
-This document records the critical architectural decisions made during the design phase of the Attendance Tracking Application.
+توضح هذه الوثيقة القرارات التقنية، التصميمية، والبرمجية التي تم اتخاذها خلال تطوير منصة **Spoken English** لتدوين الحضور والغياب، مع تقديم المبررات الهندسية والجمالية لكل قرار لتسهيل فهم المشروع لأي مبرمج أو جهة مراجعة.
 
-## 001: Choice of Tech Stack (Serverless + Managed Postgres)
+---
 
-### Context & Problem Statement
-The application requires a database to store student data and daily attendance logs with relational integrity. It also needs a secure backend layer to communicate with the database without exposing credentials to the frontend. The project must have minimal operational overhead, require zero server maintenance, and scale easily.
+## 1. التوجه نحو لغة JavaScript الخام (Vanilla JS)
+* **القرار:** بناء الواجهة بالكامل باستخدام HTML5 و CSS3 و Vanilla JavaScript دون استخدام أطر عمل حديثة (مثل React أو Vue أو Angular).
+* **المبررات:**
+  1. **السرعة وخفة الحجم:** لا يحتاج التطبيق لزمن تحميل إضافي للمكتبات الضخمة؛ فهو يفتح فوراً حتى على سرعات الإنترنت الضعيفة.
+  2. **البساطة والتوافق:** الكود الخام يعمل على أي متصفح قديم أو حديث دون الحاجة لخطوات تجميع معقدة (Webpack / Vite Bundlers).
+  3. **استقرار الصيانة:** لغة JavaScript القياسية لا تعاني من مشاكل تحديث الإصدارات والتبعيات (Dependency Deprecations) التي تحدث باستمرار في React.
 
-### Decision Rationale
-We selected **NeonDB (PostgreSQL)** for the data layer and **Netlify Functions** for the serverless backend API layer. 
+---
 
-#### 🚀 NeonDB (Managed PostgreSQL)
-* **Pros:**
-    * **Fully Managed:** No database provisioning, maintenance, or scaling configs required.
-    * **Serverless Features:** Supports auto-suspend (scales to zero when not in use), saving computing costs during inactive hours.
-    * **Relational Integrity:** Pure PostgreSQL engine allows strict foreign key constraints and robust composite unique indexes.
-* **Cons:**
-    * **Connection Overhead:** Traditional PostgreSQL handles active connections heavily. In a serverless setup, cold starts can pool too many connections. *Mitigation: We must use Neon's built-in connection pooling URL (`-pooler`).*
+## 2. الهوية البصرية وتصميم شاشة الدخول ولوحة التحكم
+* **القرار:** اعتماد سمة "الكحلي الليلي المضيء" (`Midnight Neon Blue Theme`):
+  - خلفية داكنة جداً (`#030f26`) مع بطاقات بلورية (`#091d42`).
+  - حدود نيون مضيئة بـ Ice Cyan (`#00e5ff`) للأجزاء النشطة.
+  - هالة زرقاء سماوية مضيئة (`#00a3ff`) لملف المعلم الشخصي.
+  - شعار القناع الضاحك ذو النصفين (الكحلي والأحمر) وتأثير حركته ثلاثية الأبعاد البطيئة.
+* **المبررات:**
+  1. **الراحة البصرية:** التصميم الداكن يقلل من إجهاد عين المعلم عند استخدام التطبيق داخل الفصول الدراسية لفترات طويلة.
+  2. **عصرية وجمالية الواجهة:** استخدام الألوان المتوهجة (`Box Shadows Glow`) يعطي عمقاً وحيوية للتطبيق ويخرجه من نطاق التصاميم التقليدية الباهتة.
+  3. **عزل المكونات (Visual Hierarchy):** يسهل تدرج الألوان وتوهجها معرفة المحاضرة الحالية تلقائياً (المحاطة باللون السيان المضيء) بمجرد النظر السريع للشاشة.
 
-#### ⚡ Netlify Functions (Serverless API Layer)
-* **Pros:**
-    * **Decoupled Architecture:** Completely separates frontend assets from runtime backend logic.
-    * **Zero Server Management:** Scaled automatically by Netlify based on incoming requests.
-    * **Secure Environment:** Allows us to safely inject database credentials (`DATABASE_URL`) using Netlify Environment Variables instead of exposing them in client-side script files.
-* **Cons:**
-    * **Cold Starts:** Initial hits to an idle serverless endpoint may experience brief network latency while booting up. Given our low-frequency usage pattern (teachers logging attendance at specific intervals), this is highly acceptable.
+---
 
-### Status
-**APPROVED**
+## 3. هيكلة التحضير وإدارة المستويات الأربعة
+* **القرار:** تقسيم الطلاب والكشوفات بشكل صارم حسب المستويات الأربعة لـ Spoken English (Level 1 to Level 4) بدلاً من وضعهم في كشف واحد كبير.
+* **المبررات:**
+  1. **التركيز الأكاديمي:** يدرس المعلم فصولاً مختلفة بمتطلبات حضور متباينة؛ وبالتالي فإن فلترة الطلاب وعرضهم بحسب مستواهم المختار تمنع تداخل البيانات والخطأ البشري.
+  2. **التحضير السريع (Bulk Actions):** توفير أزرار تحضير جماعية للجميع كحاضر أو غائب يختصر عملية الرصد في الفصول المزدحمة إلى ثوانٍ معدودة.
 
-### Consequences
-* No dedicated virtual machine (EC2/Droplet) needs to be rented or maintained.
-* All data operations must go through Netlify serverless functions; direct frontend-to-database connections are strictly forbidden.
-* Environment variables must be locally managed via a secured `.env` file (git-ignored) and manually added inside the Netlify Dashboard.
+---
+
+### 4. هيكل البيانات الخلفية (NeonDB Serverless Architecture)
+* **القرار:** استخدام قاعدة بيانات PostgreSQL سحابية من NeonDB والربط معها عبر دوال Netlify Serverless باستخدام **تجميع الاتصالات (Connection Pooling)**.
+* **المبررات:**
+  1. **طبيعة السيرفرات السحابية (Serverless Nature):** بيئة Netlify Functions هي بيئة مؤقتة؛ تعمل عند الطلب وتغلق فوراً. تكرار فتح وإغلاق الاتصال المباشر بقاعدة البيانات دون وسيط يؤدي لسرعة استهلاك قنوات الاتصال وحدوث خطأ `Connection Timeout`.
+  2. **الوسيط الذكي (Connection Pooler):** استخدام الرابط المخصص للـ Pooler يجعل قاعدة البيانات قادرة على استيعاب مئات طلبات التحضير المتزامنة بذكاء واستقرار كامل.
+  3. **حماية السرية والأمان:** تخزين رابط قاعدة البيانات في ملف `.env` محلياً وفي إعدادات Netlify سحابياً يمنع كشف الكود أو اختراق البيانات في حال تم تسريب المستودع (GitHub Repository).
+
+---
+
+## 5. ميكانيكية التحضير المزدوجة (Hybrid Sync)
+* **القرار:** إبقاء كود المزامنة مع الذاكرة المحلية لمتصفح العميل (`LocalStorage`) بجانب قاعدة البيانات السحابية (NeonDB).
+* **المبررات:**
+  1. **استمرارية العمل دون إنترنت (Offline Resilience):** إذا فقد المعلم الاتصال بالإنترنت فجأة داخل القاعة الدراسية، يحفظ التطبيق البيانات محلياً على المتصفح لضمان عدم توقف عملية التحضير، وتتم المزامنة السحابية فور عودة الشبكة.
