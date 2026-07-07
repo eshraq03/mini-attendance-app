@@ -1,6 +1,6 @@
-# معمارية النظام وتدفق البيانات (04_ARCHITECTURE.md)
+# معمارية النظام وتدفق البيانات بالتفصيل (04_ARCHITECTURE.md)
 
-تعتمد منصة **Spoken English** على معمارية سحابية ثلاثية الطبقات (3-Tier Serverless Architecture) تفصل بين واجهة المستخدم، الدوال البرمجية الذكية، وقاعدة البيانات السحابية. يوضح هذا المستند الهيكل الهندسي للنظام.
+تعتمد منصة **Spoken English** على معمارية سحابية ثلاثية الطبقات (3-Tier Serverless Architecture) تفصل بين واجهة المستخدم، الدوال البرمجية الذكية، وقاعدة البيانات السحابية. يوضح هذا المستند الهيكل الهندسي للنظام وتدفق العمليات البرمجية بالتفصيل.
 
 ---
 
@@ -37,57 +37,141 @@
 
 ---
 
-## 2. تفصيل طبقات المعمارية (Architectural Layers)
+## 2. آلية جلب البيانات (Data Fetching Mechanism)
 
-### أولاً: طبقة الواجهة الأمامية (Presentation Layer - Frontend)
-* **المكونات:** تتألف من كود خام بالكامل (HTML5, CSS3, Vanilla JS) متواجد في مجلد `public/`.
-* **الصفحة الأحادية (SPA Architecture):** يتم تبديل الشاشات (تبويب الحضور، تبويب الإحصائيات، شاشة الدخول) بشكل فوري في المتصفح دون الحاجة لإعادة تحميل الصفحة كاملة، عن طريق التحكم بفئات الـ CSS النشطة (`.active` / `.hidden`).
-* **التخزين الهجين (Hybrid Client-Side Storage):**
-  - عند فتح التطبيق، يتم فوراً تحميل البيانات المخزنة محلياً في الذاكرة مؤقتاً (`LocalStorage`) ليعمل التطبيق فوراً دون انتظار الشبكة (Progressive Booting).
-  - يبدأ التطبيق فوراً في الخلفية بجلب النسخة الأحدث من السيرفر، وتحديث العرض.
-  - في حال انقطاع الإنترنت، يعمل الـ LocalStorage كذاكرة طوارئ لا تتوقف، ويتم ترحيل البيانات للسيرفر فور عودة الاتصال.
+عند تشغيل التطبيق أو تسجيل الدخول، يتم استدعاء البيانات وتحديثها عبر الخطوات البرمجية التالية:
+
+### الخطوة 1: تهيئة الواجهة محلياً (Immediate Cache Render)
+* **الملف:** `public/js/app.js`
+* **الحدث:** `DOMContentLoaded`
+* **العملية:** يستدعي كود الواجهة دالة `loadData()` لقراءة البيانات المخزنة محلياً في الذاكرة المؤقتة للمتصفح (`localStorage`) وعرضها فوراً حتى لا يرى المعلم شاشة بيضاء بانتظار استجابة الشبكة.
+
+### الخطوة 2: استدعاء دالة الجلب السحابية (Async Remote Fetch)
+* **الملف:** `public/js/app.js`
+* **الدالة:** `syncWithBackend()`
+* **العملية:** يتم إرسال طلب غير متزامن (Asynchronous HTTP GET) للرابط السحابي:
+  ```javascript
+  const response = await fetch('/.netlify/functions/get_data');
+  const data = await response.json();
+  ```
+
+### الخطوة 3: معالجة الطلب في السيرفر (Server-Side Execution)
+* **الملف:** `netlify/functions/get_data.js`
+* **العملية:** 
+  1. تقوم الدالة بفتح اتصال آمن عبر تجمع الاتصالات (Connection Pool) بقاعدة بيانات NeonDB.
+  2. تنفذ استعلامين لجلب الطلاب والكشوفات التاريخية:
+     ```sql
+     SELECT id, name, roll_number, class_level FROM students ORDER BY id ASC;
+     SELECT id, TO_CHAR(session_date, 'YYYY-MM-DD') AS session_date, class_level, records, stats FROM attendance_logs ORDER BY session_date DESC;
+     ```
+  3. تنسق الصفوف الناتجة في مصفوفة JSON وتضيف ترويسات الأمان ومشاركة الموارد (CORS Headers) ثم ترجعها برمز نجاح `200 OK`.
+
+### الخطوة 4: تحديث الواجهة والذاكرة (UI Synchronization)
+* **الملف:** `public/js/app.js`
+* **العملية:** يستقبل المتصفح البيانات المحدثة، ويقوم بتخزينها محلياً لدمج الكاش، ويعيد استدعاء دوال الرسم `renderDashboard()` و `renderStudentsList()` لتحديث الأرقام والجداول فوراً أمام المعلم.
 
 ---
 
-### ثانياً: طبقة الدوال السحابية (Logic Layer - Netlify Serverless Backend)
-* **المكونات:** أربع دوال برمجية تعمل على سيرفرات Node.js مؤقتة في مجلد `netlify/functions/`.
-* **مبدأ اللا-حالة (Statelessness):** لا تخزن هذه الدوال أي بيانات بداخلها؛ بل تعمل كجسر ذكي يتحقق من صحة البيانات القادمة من المتصفح ويقوم بترحيلها لقاعدة البيانات.
-* **الأمان وعزل المتغيرات:** يتم استدعاء رابط قاعدة البيانات عبر متغير النظام `process.env.DATABASE_URL` المدار سحابياً في لوحة تحكم Netlify دون كتابة كلمة المرور في ملفات الكود لمنع تسريبها.
-* **معالجة الأخطاء واللوج:** كل دالة محاطة ببنية `try/catch` كاملة وتطبع تفاصيل الخطأ في الـ Console على السيرفر لتسهيل المراقبة.
+## 3. تدفق عملية تسجيل الحضور والغياب (Attendance Registration Flow)
+
+يوضح المخطط التالي تسلسل العمليات من لحظة نقر المعلم على زر "الحفظ" حتى انزلاق البيانات في قاعدة البيانات:
+
+```text
+[المعلم] ينقر زر الحفظ
+        |
+        v
+[app.js] يمنع إرسال النموذج الافتراضي (e.preventDefault)
+        |
+        v
+[app.js] يجمع مدخلات الراديو (Present/Absent/Late) لكل طالب
+        |
+        v
+[app.js] يحسب الإحصائيات (النسبة المئوية، مجموع الحضور، الغياب)
+        |
+        v
+[app.js] يعطل زر الحفظ مؤقتاً ويطلق مؤشر الانتظار (Spinner)
+        |
+        v
+[app.js] يرسل طلب POST لـ /save_attendance ومعه جسم الطلب كـ JSON
+        |
+        +-----------------------------> [سحابة Netlify]
+                                              |
+                                              v
+                                  [save_attendance.js] تستقبل الطلب
+                                              |
+                                              v
+                                  [save_attendance.js] تتصل بـ NeonDB
+                                              |
+                                              v
+                                  تنفذ استعلام UPSERT المدمج:
+                                  "INSERT ... ON CONFLICT DO UPDATE"
+                                              |
+                                              v
+                                  تغلق الاتصال وترسل رد 200 OK للواجهة
+        +<------------------------------------+
+        |
+        v
+[app.js] يستقبل الرد، ويعيد تفعيل زر الحفظ وإخفاء السبينر
+        |
+        v
+[app.js] يقوم بحفظ الكشف في الذاكرة المحلية localStorage احتياطياً
+        |
+        v
+[app.js] يظهر رسالة توست النجاح الخضراء: "Saved attendance for Level X on Date!"
+        |
+        v
+[app.js] ينقل المعلم تلقائياً لتبويب لوحة التحكم الرئيسي (Dashboard)
+```
 
 ---
 
-### ثالثاً: طبقة قاعدة البيانات (Data Tier - NeonDB Cloud PostgreSQL)
-* **المكونات:** خادم PostgreSQL سحابي على منصة Neon.
-* **الربط وتجميع الاتصالات (Connection Pooling):**
-  - نظراً لأن الدوال السحابية (Serverless) تنشئ قنوات اتصال متعددة مع كل طلب، تم تمرير الطلبات عبر خادم Neon Connection Pooler (المنتهي بـ `-pooler`).
-  - يقوم الـ Pooler بتقليص وتجميع مئات الاتصالات المؤقتة المفتوحة من السيرفر وتوجيهها في قنوات ثابتة ومستقرة لقاعدة البيانات، لمنع انهيارها بسبب استهلاك الـ Connections.
-* **الهيكل العلائقي (Relational Schema):**
-  - جدول الطلاب (`students`): يضمن عدم تكرار أرقام قيد الطلاب عن طريق حقل `roll_number UNIQUE`.
-  - جدول الكشوفات (`attendance_logs`): يربط الكشف بالتاريخ والمستوى الدراسي عن طريق مفتاح مركب فريد يمنع التكرار لنفس اليوم والمستوى الدراسي.
+## 4. تدفق كود الحفظ البرمجي بالتفصيل (Code Call Stack Tracer)
 
----
+### 1. إرسال الكشف من الواجهة الأمامية:
+* **الملف:** `public/js/app.js`
+* **الدالة:** مستمع الحدث `submit` للنموذج `#attendance-sheet-form`:
+  ```javascript
+  form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      // جمع البيانات وحساب الإحصائيات...
+      const stats = { present, absent, late, rate };
+      
+      // تعطيل زر الإرسال لتجنب تكرار الضغط
+      submitBtn.disabled = true;
+      
+      // إرسال الطلب البرمجي
+      const response = await fetch('/.netlify/functions/save_attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: dateStr, level, records, stats })
+      });
+  ```
 
-## 3. دورة حياة تدفق البيانات (Data Flow Life-Cycle)
+### 2. استقبال وحفظ الكشف في السيرفر:
+* **الملف:** `netlify/functions/save_attendance.js`
+* **الدالة:** `exports.handler`:
+  ```javascript
+  const { date, level, records, stats } = JSON.parse(event.body);
+  
+  // استعلام UPSERT لضمان عدم التكرار لنفس اليوم والصف
+  const query = `
+    INSERT INTO attendance_logs (session_date, class_level, records, stats)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (session_date, class_level)
+    DO UPDATE SET records = EXCLUDED.records, stats = EXCLUDED.stats
+  `;
+  await pool.query(query, [date, level, JSON.stringify(records), JSON.stringify(stats)]);
+  ```
 
-### أ. عند تسجيل حضور وغياب فئة معينة:
-1. يضغط المعلم على "حفظ" في الواجهة.
-2. تحسب الواجهة إجمالي الحضور والغياب ونسبة الحضور المئوية فورياً.
-3. ترسل الواجهة طلب POST يحتوي على كائن JSON بالهيكل التالي:
-   ```json
-   {
-     "date": "2026-07-07",
-     "level": "Level 1",
-     "records": { "SE202601": "present", "SE202602": "absent" },
-     "stats": { "present": 1, "absent": 1, "late": 0, "rate": 50 }
-   }
-   ```
-4. تستقبل دالة `save_attendance.js` الطلب وتنفذ استعلام `UPSERT` المتقدم:
-   ```sql
-   INSERT INTO attendance_logs (session_date, class_level, records, stats)
-   VALUES ($1, $2, $3, $4)
-   ON CONFLICT (session_date, class_level)
-   DO UPDATE SET records = EXCLUDED.records, stats = EXCLUDED.stats;
-   ```
-5. يتم تحديث السجل أو إنشائه في قاعدة البيانات، وترسل الدالة رد نجاح `200 OK` للمتصفح.
-6. يقوم المتصفح بتحديث الذاكرة المحلية والرجوع للوحة التحكم.
+### 3. معالجة الاستجابة وتحديث شاشة المعلم:
+* **الملف:** `public/js/app.js`
+* **العملية:** عند استقبال رد السيرفر بنجاح:
+  ```javascript
+  // تحديث الكاش المحلي
+  attendanceLogs.push(logData);
+  saveLogs();
+  
+  // الانتقال للرئيسية وإظهار التنبيه
+  showToast(`Saved attendance for ${level} on ${dateStr}!`, 'success');
+  switchTab('dashboard');
+  ```
