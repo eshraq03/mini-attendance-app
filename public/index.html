@@ -378,38 +378,42 @@
 
                 <!-- SCREEN 2: TAKE ATTENDANCE (SUBJECT-SPECIFIC) -->
                 <section class="tab-content" id="tab-take-attendance">
-                    <div class="screen-header flex-space-between flex-wrap gap-md">
-                        <div>
-                            <h2 class="screen-title" id="attendance-level-title">Take Attendance</h2>
-                            <p class="screen-subtitle">Select date and log student attendance for this level.</p>
-                        </div>
-                        <button class="btn btn-secondary" onclick="backToDashboard()">
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                            <span>Back to Home</span>
-                        </button>
-                    </div>
-
-                    <div class="attendance-controls-card">
-                        <div class="card-body flex-space-between flex-wrap gap-md">
-                            <div class="control-group">
-                                <label for="attendance-date" class="form-label inline-label">Session Date:</label>
-                                <input type="date" id="attendance-date" class="form-input date-picker font-outfit" required>
+                    <form id="attendance-sheet-form">
+                        <div class="screen-header flex-space-between flex-wrap gap-md">
+                            <div>
+                                <h2 class="screen-title" id="attendance-level-title">Take Attendance</h2>
+                                <p class="screen-subtitle">Select date and log student attendance for this level.</p>
                             </div>
-                            <div class="quick-bulk-actions">
-                                <button type="button" class="btn btn-outline" id="btn-mark-all-present">
-                                    Mark All Present ✔
-                                </button>
-                                <button type="button" class="btn btn-outline-danger" id="btn-mark-all-absent">
-                                    Mark All Absent ✖
-                                </button>
+                            <button type="button" class="btn btn-secondary" onclick="backToDashboard()">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                                <span>Back to Home</span>
+                            </button>
+                        </div>
+
+                        <div class="attendance-controls-card">
+                            <div class="card-body flex-space-between flex-wrap gap-md">
+                                <div class="control-group">
+                                    <label for="attendance-date" class="form-label inline-label">Session Date:</label>
+                                    <input type="date" id="attendance-date" class="form-input date-picker font-outfit" required>
+                                </div>
+                                <div class="quick-bulk-actions">
+                                    <button type="button" class="btn btn-outline btn-sm" id="btn-mark-all-present">
+                                        Mark All Present ✔
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" id="btn-mark-all-absent">
+                                        Mark All Absent ✖
+                                    </button>
+                                    <button type="submit" class="btn btn-success btn-sm" id="btn-submit-attendance">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                        <span>Save Attendance</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Attendance Sheet Table -->
-                    <div class="attendance-sheet-card visual-card">
-                        <div class="card-body">
-                            <form id="attendance-sheet-form">
+                        <!-- Attendance Sheet Table -->
+                        <div class="attendance-sheet-card visual-card">
+                            <div class="card-body">
                                 <input type="hidden" id="attendance-selected-level">
                                 <div class="table-responsive">
                                     <table class="data-table">
@@ -425,15 +429,9 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                <div class="sheet-actions">
-                                    <button type="submit" class="btn btn-success" id="btn-submit-attendance">
-                                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                                        <span>Save Daily Attendance</span>
-                                    </button>
-                                </div>
-                            </form>
+                            </div>
                         </div>
-                    </div>
+                    </form>
                 </section>
 
                 <!-- SCREEN 3: ROSTER & HISTORY (SUBJECT-SPECIFIC) -->
